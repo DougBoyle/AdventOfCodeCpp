@@ -15,60 +15,63 @@ void elfFinished() {
     elfTotal = 0;
 }
 
-void part1()
-{
-    ifstream input("Day1.txt");
+namespace day1 {
 
-    string line;
-    // getline returns the passed input stream,
-    // ios evaulates to true as long as neither failbit or badbit set, get updated by reading (e.g. EOF)
-    while (getline(input, line)) {
-        if (line.length() == 0) elfFinished();
-        else elfTotal += stoi(line); // stoi = string-to-int
+    void part1()
+    {
+        ifstream input("Day1.txt");
+
+        string line;
+        // getline returns the passed input stream,
+        // io evaulates to true as long as neither failbit or badbit set, get updated by reading (e.g. EOF)
+        while (getline(input, line)) {
+            if (line.length() == 0) elfFinished();
+            else elfTotal += stoi(line); // stoi = string-to-int
+        }
+        elfFinished();
+
+        cout << maxElfTotal << endl; // 71471
     }
-    elfFinished();
-
-    cout << maxElfTotal << endl; // 71471
-}
 
 
 
 
-vector<int> elves;
+    vector<int> elves;
 
-void elfFinished2() {
-    elves.push_back(elfTotal);
-    elfTotal = 0;
-}
-
-void part2()
-{
-    ifstream input("Day1.txt");
-
-    string line;
-    while (getline(input, line)) {
-        if (line.length() == 0) elfFinished2();
-        else elfTotal += stoi(line);
+    void elfFinished2() {
+        elves.push_back(elfTotal);
+        elfTotal = 0;
     }
-    elfFinished2();
 
-    // now sort to get top 3
-    // sort takes 2 "Random access iterators" for range to sort, plus comparator to get descending order
-    // (alternative solution is to provide 'reverse' iterators rbegin and rend
-    sort(elves.begin(), elves.end(), greater<>());
+    void part2()
+    {
+        ifstream input("Day1.txt");
 
-    // C++ does implicit conversion, will happily work out how to combine ints/strings
-    cout << elves[0] << " " << elves[1] << " " << elves[2] << endl; // 71471 70523 69195
-    cout << elves[0] + elves[1] + elves[2] << endl; // 211189
-}
+        string line;
+        while (getline(input, line)) {
+            if (line.length() == 0) elfFinished2();
+            else elfTotal += stoi(line);
+        }
+        elfFinished2();
 
-int main() {
-    part2();
+        // now sort to get top 3
+        // sort takes 2 "Random access iterators" for range to sort, plus comparator to get descending order
+        // (alternative solution is to provide 'reverse' iterators rbegin and rend
+        sort(elves.begin(), elves.end(), greater<>());
 
-    // wait to close
-    cin.get();
+        // C++ does implicit conversion, will happily work out how to combine ints/strings
+        cout << elves[0] << " " << elves[1] << " " << elves[2] << endl; // 71471 70523 69195
+        cout << elves[0] + elves[1] + elves[2] << endl; // 211189
+    }
 
-    return 0;
+    int main() {
+        part2();
+
+        // wait to close
+        cin.get();
+
+        return 0;
+    }
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
