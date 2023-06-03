@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm> // sort
 #include <map>
+#include <stdexcept>
 
 using namespace std;
 
@@ -23,6 +24,7 @@ int RpsResult(RPS& ours, RPS& theirs) {
         return theirs == rock ? 6 : 0;
     case scissors:
         return theirs == paper ? 6 : 0;
+    default: throw out_of_range("Invalid enum value " + to_string(ours));
     }
 }
 
@@ -34,6 +36,7 @@ int RpsValue(RPS& value) {
         return 2;
     case scissors:
         return 3;
+    default: throw out_of_range("Invalid enum value " + to_string(value));
     }
 }
 
@@ -47,6 +50,7 @@ RPS decodePart2(RPS& theirs, char outcome) {
     case 'Z':
         return theirs == rock ? paper :
             theirs == scissors ? rock : scissors;
+    default: throw out_of_range("Invalid outcome value " + to_string(outcome));
     }
 }
 

@@ -18,15 +18,15 @@ int itemPriority(char item) {
 namespace day3 {
 
     void processLine(string& line, int& total) {
-        int items = line.length();
-        int compartmentSize = items / 2;
+        size_t items = line.length();
+        size_t compartmentSize = items / 2;
         set<char> compartment;
 
-        for (int i = 0; i < compartmentSize; i++) {
+        for (size_t i = 0; i < compartmentSize; i++) {
             compartment.insert(line[i]);
         }
 
-        for (int i = compartmentSize; i < items; i++) {
+        for (size_t i = compartmentSize; i < items; i++) {
             char item = line[i];
             if (compartment.contains(item)) {
                 total += itemPriority(item);

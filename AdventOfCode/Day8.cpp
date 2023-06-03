@@ -19,19 +19,20 @@ Direction opposite(const Direction& d) {
         return Right;
     case Right:
         return Left;
+    default: throw out_of_range("Invalid enum value " + to_string(d));
     }
 }
 
 class Point {
 public:
-    int x;
-    int y;
+    size_t x;
+    size_t y;
 
     // delegating constructor
     Point() : Point(0, 0) {}
-    Point(int x, int y) : x(x), y(y) {}
+    Point(size_t x, size_t y) : x(x), y(y) {}
 
-    bool inBounds(int width, int height) {
+    bool inBounds(size_t width, size_t height) {
         return x >= 0 && x < width&& y >= 0 && y < height;
     }
 
@@ -50,6 +51,7 @@ public:
         case Right:
             x += steps;
             break;
+        default: throw out_of_range("Invalid enum value " + to_string(d));
         }
     }
 
@@ -59,7 +61,7 @@ public:
 
     // For scanning whole grid (ignoring edges) in direction Right,
     // start with (0, 1), and scan the row below after, until you reach (n-1, 0)
-    static Point firstScanFrom(const Direction& d, int gridWidth, int gridHeight) {
+    static Point firstScanFrom(const Direction& d, size_t gridWidth, size_t gridHeight) {
         switch (d)
         {
         case Up: // start bottom left
@@ -70,10 +72,11 @@ public:
             return Point(gridWidth - 1, 1);
         case Right:
             return Point(0, 1);
+        default: throw out_of_range("Invalid enum value " + to_string(d));
         }
     }
 
-    static Point lastScanFrom(const Direction& d, int gridWidth, int gridHeight) {
+    static Point lastScanFrom(const Direction& d, size_t gridWidth, size_t gridHeight) {
         switch (d)
         {
         case Up: // last row is bottom right
@@ -84,6 +87,7 @@ public:
             return Point(gridWidth - 1, gridHeight - 1);
         case Right:
             return Point(0, gridHeight - 1);
+        default: throw out_of_range("Invalid enum value " + to_string(d));
         }
     }
 
@@ -97,6 +101,7 @@ public:
         case Left: // move up rows
         case Right:
             return move(Up);
+        default: throw out_of_range("Invalid enum value " + to_string(d));
         }
     }
 
@@ -128,8 +133,8 @@ namespace day8 {
 
     void part1() {
         vector<vector<int>> grid = readGrid();
-        int gridHeight = grid.size();
-        int gridWidth = grid[0].size();
+        size_t gridHeight = grid.size();
+        size_t gridWidth = grid[0].size();
         // [m][n] only supported if n is a compile-time constant
         // {} intializes everything to 0 (or could specify prefix of array values to populate)
         bool* visible = new bool[gridHeight * gridWidth] {};
@@ -173,8 +178,8 @@ namespace day8 {
 
     void part2() {
         vector<vector<int>> grid = readGrid();
-        int gridHeight = grid.size();
-        int gridWidth = grid[0].size();
+        size_t gridHeight = grid.size();
+        size_t gridWidth = grid[0].size();
 
         int* visibleRange = new int[4 * gridHeight * gridWidth] {}; // all initialised to 0
 
