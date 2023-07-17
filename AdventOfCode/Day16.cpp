@@ -177,7 +177,7 @@ namespace day16 {
 		int distance2
 	) {
 		// effectively a prefix of the search space
-		if (remainingTime > 22) {
+		if (valve1.key == "AA") {
 			cout << "T=" << remainingTime << ": v1=" << valve1.key << ", v2=" << valve2.key 
 				<< ", score=" << currentScore << ", best=" << bestScore << endl;
 		}
@@ -277,6 +277,7 @@ namespace day16 {
 		// 2. track upper bound on remaining value, cutoff early if less than maximum?
 		//		only takes 15s with upper bound!
 		// 3. do a full search with 1 person, then just repeat for the other with a reduced visited set
+		//		54s, slower since we can't estimate the max value from the second path well until we finish the first player's path
 		time_t start, end;
 		time(&start);
 		dfs2(valves, shortestPaths, visited, bestScore, 0, totalFlow, 26, startValve, startValve, 0);
