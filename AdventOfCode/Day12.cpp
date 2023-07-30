@@ -21,34 +21,34 @@ int getHeight(char c) {
 
 class Grid {
 private:
-    Point start;
-    Point end;
+    Point<int> start;
+    Point<int> end;
 
     size_t grid_width;
     size_t grid_height;
 
     vector<vector<int>> grid;
-    map<Point, int> distances;
+    map<Point<int>, int> distances;
 
     // std::priority_queue doesn't support remove/update, so can't 'improve' priority as shorter paths found.
     // instead just remove/reinsert into set whenever distance changes (remove first, update distance, reinsert).
     // (since set still supports ordering)
-    const std::function<bool(const Point&, const Point&)> priorityQueueComparator = [this](const Point& p1, const Point& p2) {
+    const std::function<bool(const Point<int>&, const Point<int>&)> priorityQueueComparator = [this](const Point<int>& p1, const Point<int>& p2) {
         // Needs to compare by distance first, but then by points if not equal!
         auto res = distances.at(p1) <=> distances.at(p2);
         if (res == 0) return p1 < p2; // fall back to comparing points
         else return res < 0; // equivalent to less
     };
 
-    typedef set<Point, decltype(priorityQueueComparator), std::allocator<Point>> Fringe;
+    typedef set<Point<int>, decltype(priorityQueueComparator), std::allocator<Point<int>>> Fringe;
 
     Fringe fringe{ priorityQueueComparator };
 
-    int get(const Point& p) {
+    int get(const Point<int>& p) {
         return grid[p.y][p.x];
     }
 
-    void explore(Point p, int currentHeight, int currentDistance, bool forwards) {
+    void explore(Point<int> p, int currentHeight, int currentDistance, bool forwards) {
         int newHeight = get(p);
         if (forwards && newHeight > currentHeight + 1
             || !forwards && newHeight < currentHeight - 1) return;
@@ -81,11 +81,11 @@ public:
             }
             else {
                 if (c == 'S') {
-                    start = Point(row.size(), grid.size());
+                    start = Point<int>(static_cast<int>(row.size()), static_cast<int>(grid.size()));
                     distances[start] = 0;
                 }
                 else if (c == 'E') {
-                    end = Point(row.size(), grid.size());
+                    end = Point<int>(static_cast<int>(row.size()), static_cast<int>(grid.size()));
                 }
 
                 row.push_back(getHeight(c));
@@ -97,19 +97,19 @@ public:
         grid_width = grid[0].size();
     }
 
-    bool isEnd(const Point& p) {
+    bool isEnd(const Point<int>& p) {
         return p == end;
     }
 
-    typedef function<bool(const Point& p, const int& height)> PointPredicate;
+    typedef function<bool(const Point<int>& p, const int& height)> PointPredicate;
 
     int dijkstra(bool forwards, PointPredicate finished) {
-        Point beginning = forwards ? start : end;
+        Point<int> beginning = forwards ? start : end;
         
         fringe.insert(beginning);
 
         while (!fringe.empty()) {
-            Point p = *fringe.begin(); fringe.erase(fringe.begin());
+            Point<int> p = *fringe.begin(); fringe.erase(fringe.begin());
 
             int height = get(p);
             int distance = distances[p];
@@ -133,7 +133,7 @@ namespace day12 {
     void part1() {
         Grid grid(ifstream("Day12.txt"));
 
-        int dist = grid.dijkstra(true, [&grid](const Point& p, const int& height) { return grid.isEnd(p); });
+        int dist = grid.dijkstra(true, [&grid](const Point<int>& p, const int& height) { return grid.isEnd(p); });
 
         cout << dist << endl; // 447
     }
@@ -141,7 +141,7 @@ namespace day12 {
     void part2() {
         Grid grid(ifstream("Day12.txt"));
 
-        int dist = grid.dijkstra(false, [&grid](const Point& p, const int& height) { return height == 0; });
+        int dist = grid.dijkstra(false, [&grid](const Point<int>& p, const int& height) { return height == 0; });
 
         cout << dist << endl; // 446
     }

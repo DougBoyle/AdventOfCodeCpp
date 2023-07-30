@@ -9,14 +9,14 @@ using namespace std;
 
 namespace day6 {
 
-    void findMarker(int size) {
-        map<char, int> lastPosition;
+    void findMarker(size_t size) {
+        map<char, size_t> lastPosition;
         ifstream input("Day6.txt");
 
         char c;
 
-        int start = 0;
-        int end = 0;
+        size_t start = 0;
+        size_t end = 0;
 
         while (end - start < size) {
             if (!(input >> c)) {

@@ -111,6 +111,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -138,6 +139,7 @@
     <ClCompile Include="Day14.cpp" />
     <ClCompile Include="Day15.cpp" />
     <ClCompile Include="Day16.cpp" />
+    <ClCompile Include="Day17.cpp" />
     <ClCompile Include="Day2.cpp" />
     <ClCompile Include="Day4.cpp" />
     <ClCompile Include="Day5.cpp" />
@@ -147,7 +149,6 @@
     <ClCompile Include="Day9.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Day3.cpp" />
-    <ClCompile Include="Point.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Day1.txt" />
@@ -161,6 +162,7 @@
     <ClInclude Include="Day14.h" />
     <ClInclude Include="Day15.h" />
     <ClInclude Include="Day16.h" />
+    <ClInclude Include="Day17.h" />
     <ClInclude Include="Day2.h" />
     <ClInclude Include="Day3.h" />
     <ClInclude Include="Day4.h" />
