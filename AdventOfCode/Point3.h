@@ -107,7 +107,13 @@ public:
 	auto operator<=>(const Face&) const = default;
 
 	const Point3& operator[](const int idx) const {
-		return points[idx];
+		// modulo indexing allows treating points as cyclic
+		return at(idx);
+	}
+
+	const Point3& at(const int idx) const {
+		// modulo indexing allows treating points as cyclic
+		return points[(numPoints() + idx) % numPoints()];
 	}
 
 	int numPoints() const {
@@ -121,15 +127,15 @@ public:
 	(accounting for possibly looping round s1[n-1] -> s1[0])
 	*/
 	Line touches(const Face& other) const {
-		// First find matching point s1[i], then check if edge s1[i] to s1[i+1 % n] is present
+		// First find matching point s1[i], then check if edge s1[i] to s1[i+1] is present
 		for (int i = 0; i < numPoints(); i++) {
-			const Point3& p1 = points[i];
-			const Point3& p2 = points[(i + 1) % numPoints()];
+			const Point3& p1 = at(i);
+			const Point3& p2 = at(i + 1);
 			for (int j = 0; j < other.numPoints(); j++) {
-				const Point3& otherP1 = other.points[j];
+				const Point3& otherP1 = other.at(j);
 				if (p1 != otherP1) continue;
 
-				const Point3& otherP2 = other.points[(j + other.numPoints() - 1) % other.numPoints()];
+				const Point3& otherP2 = other.at(j - 1);
 				if (p2 == otherP2) return { p1, p2 };
 			}
 		}
@@ -141,15 +147,15 @@ public:
 	// direction moving along that face is then other[j] -> other[j+1]
 	Point3 dirOnTouchingFace(const Face& other) const {
 		for (int i = 0; i < numPoints(); i++) {
-			const Point3& p1 = points[i];
-			const Point3& p2 = points[(i + 1) % numPoints()];
+			const Point3& p1 = at(i);
+			const Point3& p2 = at(i + 1);
 			for (int j = 0; j < other.numPoints(); j++) {
-				const Point3& otherP1 = other.points[j];
+				const Point3& otherP1 = other.at(j);
 				if (p1 != otherP1) continue;
 
-				const Point3& otherP2 = other.points[(j + other.numPoints() - 1) % other.numPoints()];
+				const Point3& otherP2 = other.at(j - 1);
 				if (p2 == otherP2) {
-					const Point3& nextPoint = other.points[(j+1) % other.numPoints()]; // TODO: Getter checking indices itself would avoid us needing to do % each time
+					const Point3& nextPoint = other.at(j + 1);
 					return Line(otherP1, nextPoint).asVector().normalise();
 				}
 			}
