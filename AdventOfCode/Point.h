@@ -34,3 +34,8 @@ template<class T> const Point<T> Point<T>::LEFT{ -1, 0 };
 template<class T> const Point<T> Point<T>::RIGHT{ 1, 0 };
 template<class T> const Point<T> Point<T>::UP{ 0, 1 };
 template<class T> const Point<T> Point<T>::DOWN{ 0, -1 };
+
+template<class T> inline std::ostream& operator<<(std::ostream& stream, Point<T> const& p) {
+	return stream << "(" << p.x << ", " << p.y << ")";
+}
+

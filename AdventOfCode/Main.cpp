@@ -1,8 +1,8 @@
-#include "Day21.h"
+#include "Day22.h"
 #include <iostream>
 
 int main() {
-	day21::main();
+	day22::main();
 
 	// wait to close
 	std::cin.get();
