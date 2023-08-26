@@ -14,9 +14,6 @@
 
 using namespace std;
 
-
-// TODO: Possibly 1 big refactor to just actually define all edges along [0-3]^3, rather than [0-4]? (i.e. all voxels).
-//       Rotations should work the same, and doesn't affect mapping of net to/from 3D, given other data present.
 namespace day22 {
 	enum Direction {
 		RIGHT = 0,
@@ -230,53 +227,26 @@ namespace day22 {
 			const Point<int>& next = day22::move(p, d);
 			const auto& flatFace = cubeToFlatFace.at(face);
 
+			Line edgeCrossed = Line::NONE;
 
 			// check bounds
 			if (next.x < 0) {
-				// Gone off 'left' of this face, need to map to/from cube to get new face
-				
-				// Get the edge we are about to go off of
-				// Rely on point[0] of net faces being top left, so going off x=0 => left side => first edge
-				// TODO: Should just define a getEdge(direction) on faces
-				const Line cubeEdgeCrossed = { face[0], face[1] };
-
-				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
-				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
+				edgeCrossed = { face[0], face[1] };
 			}
 			else if (next.x >= TILE_SIZE) {
-				// Gone off 'right' of this face, need to map to/from cube to get new face
-
-				// Get the edge we are about to go off of
-				// Rely on point[0] of net faces being top left, so going off x=50 => right side => third edge
-				const Line cubeEdgeCrossed = { face[2], face[3] };
-
-				// use new point, which is along edge (x=50)
-				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
-				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
+				edgeCrossed = { face[2], face[3] };
 			}
 			else if (next.y < 0) {
-				// Gone off 'left' of this face, need to map to/from cube to get new face
-
-				// Get the edge we are about to go off of
-				// Rely on point[0] of net faces being top left, so going off x=0 => left side => first edge
-				const Line cubeEdgeCrossed = { face[3], face[0] };
-
-				// use original point, which is along edge (x=0)
-				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
-				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
+				edgeCrossed = { face[3], face[0] };
 			}
 			else if (next.y >= TILE_SIZE) {
-				// Gone off 'bottom' of this face, need to map to/from cube to get new face
-
-				// Get the edge we are about to go off of
-				// Rely on point[0] of net faces being top left, so going off y=50 => bottom side => second edge
-				const Line cubeEdgeCrossed = { face[1], face[2] };
-
-				// use new point, which is along edge (y=50)
-				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
-				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
+				edgeCrossed ={ face[1], face[2] };
 			}
-			else {
+
+			if (edgeCrossed != Line::NONE) {
+				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, edgeCrossed, cubeToFlatFace);
+				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
+			} else {
 				// simple case, just check if that tile is free
 				return getNewPointIfNoWall(p, next, d, d, face, face, cubeToFlatFace);
 			}
@@ -322,21 +292,12 @@ namespace day22 {
 		return grid;
 	}
 
-	void part1() {
-		ifstream input{ "Day22.txt" };
-		if (!input) throw invalid_argument("Failed to open Day22.txt");
-
-		Grid grid = readGrid(input);
-
+	// Returns final facing direction
+	template <typename Step>
+	Direction runCommands(ifstream& input, Step step) {
 		string commands;
 		getline(input, commands);
 		istringstream commandStream{ commands };
-
-		int y = 1;
-		int x = grid.rowXMin[y];
-		Point p{ x, y };
-		// first available tile on top row
-		while (grid.walls.at(p)) p.x++;
 
 		Direction dir = RIGHT;
 		char next;
@@ -354,12 +315,36 @@ namespace day22 {
 			else {
 				int steps;
 				commandStream >> steps;
-				p = grid.move(p, dir, steps);
+				dir = step(dir, steps);
 			}
 		}
+		return dir;
+	}
+
+	Point<int> startPoint(Grid& grid) {
+		int y = 1;
+		int x = grid.rowXMin[y];
+		Point<int> p{ x, y };
+		// first available tile on top row
+		while (grid.walls.at(p)) p.x++;
+		return p;
+	}
+
+	void part1() {
+		ifstream input{ "Day22.txt" };
+		if (!input) throw invalid_argument("Failed to open Day22.txt");
+
+		Grid grid = readGrid(input);
+
+		Point<int> p = startPoint(grid);
+		
+		Direction finalDir = runCommands(input, [&](Direction dir, int steps) {
+			p = grid.move(p, dir, steps);
+			return dir;
+		});
 
 		// 1000 times the row, 4 times the column, and the facing.
-		int result = 1000 * p.y + 4 * p.x + static_cast<int>(dir);
+		int result = 1000 * p.y + 4 * p.x + static_cast<int>(finalDir);
 
 		cout << result << endl; // 109094
 	}
@@ -475,28 +460,29 @@ namespace day22 {
 		return result;
 	}
 
+	vector<Face> gridToFaces(const Grid& grid) {
+		vector<Face> netFaces;
+		for (const auto& [p, _] : grid.walls) {
+			// remember, cells of original grid are 1 indexed
+			if (p.x % TILE_SIZE == 1 && p.y % TILE_SIZE == 1) {
+				// Important that face is defined with points in this order
+				Point3 p1{ p.x, p.y, 0 };
+				Point3 p2{ p.x, p.y + TILE_SIZE - 1, 0 };
+				Point3 p3{ p.x + TILE_SIZE - 1, p.y + TILE_SIZE - 1, 0 };
+				Point3 p4{ p.x + TILE_SIZE - 1, p.y, 0 };
+				netFaces.push_back({ { p1, p2, p3, p4 } });
+			}
+		}
+		return netFaces;
+	}
+
 	void part2() {
 		ifstream input{ "Day22.txt" };
 		if (!input) throw invalid_argument("Failed to open Day22.txt");
 
 		Grid grid = readGrid(input);
 
-		// Now turn this into a collection of faces to pass
-		// Exploits the fact that the net is aligned with the input shape i.e. on multiples of 50
-		vector<Face> netFaces;
-		for (const auto& [p, _] : grid.walls) {
-			// wasteful to iterate the whole things, but straightforward
-			// (could instead remember overall min/max bounds of grid, and search with 50x50 spacing)
-			// NOTE: 1 INDEXED
-			if (p.x % TILE_SIZE == 1 && p.y % TILE_SIZE == 1) {
-				// Important that face is defined with points in anti-clockwise order!
-				Point3 p1{ p.x, p.y, 0 };
-				Point3 p2{ p.x, p.y + TILE_SIZE - 1, 0 };
-				Point3 p3{ p.x + TILE_SIZE - 1, p.y + TILE_SIZE - 1, 0 }; 
-				Point3 p4{ p.x + TILE_SIZE - 1, p.y, 0 };
-				netFaces.push_back({ { p1, p2, p3, p4 } });
-			}
-		}
+		vector<Face> netFaces = gridToFaces(grid);
 
 		if (netFaces.size() != 6) throw invalid_argument("Failed to find all 6 faces");
 		cout << "Faces of net:" << endl;
@@ -510,60 +496,33 @@ namespace day22 {
 			cubeToNetFace.insert({ cubeFaces[i], netFaces[i] });
 		}
 
-		int y = 1;
-		int x = grid.rowXMin[y];
-		Point<int> p{ x, y };
-		// first available tile on top row
-		while (grid.walls.at(p)) p.x++;
+		Point<int> p = startPoint(grid);
 
 		// Find corresponding face on net of starting point, and which face of the cube that is
-		const pair<const Face, Face>* start = nullptr;
-		for (auto& cubeFaceNetFace : cubeToNetFace) {
+		auto it = find_if(cubeToNetFace.begin(), cubeToNetFace.end(), [&](const auto& cubeFaceNetFace) {
 			const auto& [cubeFace, netFace] = cubeFaceNetFace;
 			int xCoord = p.x - netFace[0].x;
-			int yCoord = y - netFace[0].y;
-			if (xCoord >= 0 && xCoord < TILE_SIZE && yCoord >= 0 && yCoord < TILE_SIZE) {
-				start = &cubeFaceNetFace;
-				break;
-			}
-		}
-		assert(start != nullptr);
+			int yCoord = p.y - netFace[0].y;
+			return xCoord >= 0 && xCoord < TILE_SIZE && yCoord >= 0 && yCoord < TILE_SIZE;
+		});
+		assert(it != cubeToNetFace.end());
 
-		Face cubeFace = start->first;
-		const Face netFace = start->second;
+		Face cubeFace = it->first;
+		const Face netFace = it->second;
 		// adjust from grid coordinates to coordinates on tile (0 <= x,y < TILE_SIZE)
 		p.x -= netFace[0].x;
 		p.y -= netFace[0].y;
 
-		string commands;
-		getline(input, commands);
-		istringstream commandStream{ commands };
-
-		Direction dir = RIGHT;
-		char next;
-		while ((next = commandStream.peek()) != EOF) {
-			if (next == 'L') {
-				dir = static_cast<Direction>((dir + 3) % 4);
-				commandStream.get();
-				continue;
-			}
-			else if (next == 'R') {
-				dir = static_cast<Direction>((dir + 1) % 4);
-				commandStream.get();
-				continue;
-			}
-			else {
-				int steps;
-				commandStream >> steps;
-				tie(p, dir, cubeFace) = grid.moveOnCube(p, dir, cubeFace, cubeToNetFace, steps);
-			}
-		}
+		Direction finalDir = runCommands(input, [&](Direction dir, int steps) {
+			tie(p, dir, cubeFace) = grid.moveOnCube(p, dir, cubeFace, cubeToNetFace, steps);
+			return dir;
+		});
 
 		// map back to actual grid coordinate
 		Point3 netPosition = cubeToNetFace.at(cubeFace)[0] + p;
 
 		// 1000 times the row, 4 times the column, and the facing.
-		int result = 1000 * netPosition.y + 4 * netPosition.x + static_cast<int>(dir);
+		int result = 1000 * netPosition.y + 4 * netPosition.x + static_cast<int>(finalDir);
 
 		cout << result << endl; // 53324
 	}
