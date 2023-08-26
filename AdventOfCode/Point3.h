@@ -29,9 +29,17 @@ public:
 	Point3 normalise() const {
 		// Simplified, we only care about things that are axis-aligned
 		int nonZero = (x != 0) + (y != 0) + (z != 0);
-		int scale = abs(x) + abs(y) + abs(z);
+		int scale = std::abs(x) + std::abs(y) + std::abs(z);
 		if (nonZero != 1) throw std::invalid_argument("Only expect to normalise axis-aligned vectors");
 		return { x / scale, y / scale, z / scale };
+	}
+
+	Point3 abs() const {
+		return { std::abs(x), std::abs(y), std::abs(z) };
+	}
+
+	int sum() const {
+		return x + y + z;
 	}
 
 	int dot(const Point3& v) const {
@@ -92,7 +100,7 @@ inline std::ostream& operator<<(std::ostream& stream, Line const& l) {
 	return stream << "" << l.from << " -> " << l.to << ")";
 }
 
-/* Points should be defined in counter-clockwise order, looking down on the face, where x,y looks like:
+/* Points should be defined in counter-clockwise order from (0,0), looking down on the face, where x,y looks like:
   (0, 0)     (x, 0)
 
   (0, y)     (x, y)

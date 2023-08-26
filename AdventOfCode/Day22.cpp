@@ -64,22 +64,7 @@ namespace day22 {
 		const Point3 mappedX = (cubeFace[1] - mappedOrigin).normalise();
 		const Point3 mappedY = (cubeFace[3] - mappedOrigin).normalise();
 
-		// For cube with edges [0,4]^3, actual 3D cells are [0-3]^3.
-		// Returned point should be along the edge i.e. [0-4]^3, 
-		// but to normalise for the two faces possibly counting along edge in reverse directions,
-		// always give coordinate ALONG the edge in [0-3] range
-		// One of 'edge . x' or 'edge . y' should be non-zero, reversed iteration identified by that vector having a negative component,
-		// in which case need to take an extra step in that negative direction.
-		// (Relying on exactly one of x/y/z components being non-zero)
-		if (edge.asVector().dot(mappedX) != 0) {
-			if (mappedX.x + mappedX.y + mappedX.z < 0) x++;
-		}
-		else {
-			if (mappedY.x + mappedY.y + mappedY.z < 0) y++;
-		}
-		Point3 newPoint = mappedOrigin + x * mappedX + y * mappedY;
-
-		return newPoint;
+		return mappedOrigin + x * mappedX + y * mappedY;
 	}
 
 	Point<int> mapCubePointToCoordsInFace(const Point3& original, const Face& cubeFace, const Face& netFace, const Line& edge) {
@@ -95,29 +80,10 @@ namespace day22 {
 		int x = offsetOriginal.dot(originalX);
 		int y = offsetOriginal.dot(originalY);
 
-		// See above, axis along edge always given in range [0-3], since the two faces could iterate it in opposite directions.
-		// If cube does indeed iterate it in reverse direction, we'll have calculated 1 too high an offset, and need to reduce that.
-		if (edge.asVector().dot(originalX) != 0) {
-			if (originalX.x + originalX.y + originalX.z < 0) x--;
-		}
-		else {
-			if (originalY.x + originalY.y + originalY.z < 0) y--;
-		}
-
 		const Point3& mappedOrigin = netFace[0];
 		const Point3 mappedX = (netFace[1] - mappedOrigin).normalise();
 		const Point3 mappedY = (netFace[3] - mappedOrigin).normalise();
 		Point3 newRelativePoint = x * mappedX + y * mappedY;
-
-		/*
-			Grid is (0-3, 0-3), but edges are defined along [0,4]-[0,4] to line up between cubes.
-			If adjacent faces have opposite traversal directions along axis, end up being off-by-one
-			when crossing onto a new face from the right or bottom (x=4 or y=4). Have to adjust accordingly.
-		*/
-		// Make use of points being ordered from top-left anti-clockwise, and edge following point order.
-		// Hence edge starting at face[1] = bottom, and at face[2] = right
-		if (cubeFace[1] == edge.from) newRelativePoint.y--;
-		else if (cubeFace[2] == edge.from) newRelativePoint.x--;
 
 		assert(newRelativePoint.z == 0);
 		return { newRelativePoint.x, newRelativePoint.y };
@@ -274,7 +240,6 @@ namespace day22 {
 				// TODO: Should just define a getEdge(direction) on faces
 				const Line cubeEdgeCrossed = { face[0], face[1] };
 
-				// use original point, which is along edge (x=0)
 				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
 				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
 			}
@@ -286,7 +251,7 @@ namespace day22 {
 				const Line cubeEdgeCrossed = { face[2], face[3] };
 
 				// use new point, which is along edge (x=50)
-				const auto& [newP, newDir, newFace] = getNewCoords(next, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
+				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
 				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
 			}
 			else if (next.y < 0) {
@@ -308,7 +273,7 @@ namespace day22 {
 				const Line cubeEdgeCrossed = { face[1], face[2] };
 
 				// use new point, which is along edge (y=50)
-				const auto& [newP, newDir, newFace] = getNewCoords(next, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
+				const auto& [newP, newDir, newFace] = getNewCoords(p, face, flatFace, cubeEdgeCrossed, cubeToFlatFace);
 				return getNewPointIfNoWall(p, newP, d, newDir, face, newFace, cubeToFlatFace);
 			}
 			else {
@@ -412,18 +377,19 @@ namespace day22 {
 		for (auto const& f : faces) cout << "  " << f << endl;
 	}
 
-	void treeFromNet(const vector<Face>& net, const Face& face, const Face* lastFace, map<Face, set<Face>>& dependents, set<Face>& visited) {
-		assert(!visited.contains(face)); // guard against loops, and ensure whole net gets explored
-		visited.insert(face);
+	void treeFromNet(const map<Face, Face>& netToCubeMapping, const Face& netFace, const Face* lastNetFace, map<Face, set<Face>>& dependents, set<Face>& visited) {
+		assert(!visited.contains(netFace)); // guard against loops, and ensure whole net gets explored
+		visited.insert(netFace);
 
-		for (const Face& f2 : net) {
-			if (face == f2 || (lastFace != nullptr && *lastFace == f2)) continue; // same face, or parent we just came from
+		const auto& cubeFace = netToCubeMapping.at(netFace);
+		for (const auto& [netF2, cubeF2] : netToCubeMapping) {
+			if (netFace == netF2 || (lastNetFace != nullptr && *lastNetFace == netF2)) continue; // same face, or parent we just came from
 
-			Line match = face.touches(f2);
+			Line match = cubeFace.touches(cubeF2);
 			if (match == Line::NONE) continue; // not connected
 
-			dependents[face].insert(f2);
-			treeFromNet(net, f2, &face, dependents, visited);
+			dependents[netFace].insert(netF2);
+			treeFromNet(netToCubeMapping, netF2, &netFace, dependents, visited);
 		}
 	}
 
@@ -453,6 +419,23 @@ namespace day22 {
 		}
 	}
 
+	/*
+	Grid lays out panels side by side, but the cube represents edges as overlapping coordinates,
+	so need to overlap 1 cell per face. i.e. [1-4][5-8] -> [1-4][4-7]
+	Each face shifted based on top-left corner, with global corner (1,1) remaining constant.
+	*/
+	Face toVoxelCoordinates(const Face& netFace) {
+		const Point3& corner = netFace[0];
+		int xOffset = (corner.x - 1) / TILE_SIZE;
+		int yOffset = (corner.y - 1) / TILE_SIZE;
+		vector<Point3> newPoints;
+		for (int i = 0; i < netFace.numPoints(); i++) {
+			const Point3& p = netFace[i];
+			newPoints.push_back({ p.x - xOffset, p.y - yOffset, 0 });
+		}
+		return { newPoints };
+	}
+
 	// For part 2, need to be able to fold into a cube!
 	// First solve the folding, then define mappings for going off one edge -> position and direction on another edge
 	/*
@@ -465,7 +448,7 @@ namespace day22 {
 	vector<Face> buildCube(const vector<Face>& originalNet) {
 		// map original -> new faces
 		map<Face, Face> faceMapping;
-		for (const Face& f1 : originalNet) faceMapping.insert({ f1, f1 }); // initiall unmodified 
+		for (const Face& f1 : originalNet) faceMapping.insert({ f1, toVoxelCoordinates(f1) }); // initiall unmodified, just shifted to overlap 
 
 
 		if (originalNet.size() != 6) throw invalid_argument("Net must have 6 faces for a cube");
@@ -476,7 +459,7 @@ namespace day22 {
 
 		map<Face, set<Face>> dependents;
 		set<Face> visited;
-		treeFromNet(originalNet, rootFace, nullptr, dependents, visited);
+		treeFromNet(faceMapping, rootFace, nullptr, dependents, visited);
 		assert(visited.size() == 6); // reached everywhere on net
 
 		// Now rotate to build cube, based on found tree
@@ -507,11 +490,10 @@ namespace day22 {
 			// NOTE: 1 INDEXED
 			if (p.x % TILE_SIZE == 1 && p.y % TILE_SIZE == 1) {
 				// Important that face is defined with points in anti-clockwise order!
-				// GOTCHA: Need to be careful navigating 'backwards' across faces due to [0, size) ranges
 				Point3 p1{ p.x, p.y, 0 };
-				Point3 p2{ p.x, p.y + TILE_SIZE, 0 };
-				Point3 p3{ p.x + TILE_SIZE, p.y + TILE_SIZE, 0 }; 
-				Point3 p4{ p.x + TILE_SIZE, p.y, 0 };
+				Point3 p2{ p.x, p.y + TILE_SIZE - 1, 0 };
+				Point3 p3{ p.x + TILE_SIZE - 1, p.y + TILE_SIZE - 1, 0 }; 
+				Point3 p4{ p.x + TILE_SIZE - 1, p.y, 0 };
 				netFaces.push_back({ { p1, p2, p3, p4 } });
 			}
 		}
@@ -527,7 +509,6 @@ namespace day22 {
 		for (int i = 0; i < 6; i++) {
 			cubeToNetFace.insert({ cubeFaces[i], netFaces[i] });
 		}
-		
 
 		int y = 1;
 		int x = grid.rowXMin[y];
